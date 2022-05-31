@@ -9,6 +9,7 @@
  */
 
 const http = require('http')
+const {ifError} = require("assert");
 
 /**
  * Post ( 블로그 글 )
@@ -18,11 +19,15 @@ const http = require('http')
  * POST /posts
  */
 const server = http.createServer((req, res) => {
+  const POST_ID_REGEX = /^\/posts\/([a-zA-Z0-9-_]+)$/ //캡처그룹을 활용해 뽑아내기 () 활용 -> .exec 의 1번인덱스배열로 값이나온다.
+  const postIdRegexResult = req.url && POST_ID_REGEX.exec(req.url) || undefined // .exec() 정보를 돌려줌
   if (req.url === '/posts' && req.method === 'GET') {
     res.statusCode == 200
     res.end('List of Posts')
   // } else if (req.url === '/posts/:id') {
-  } else if (req.url && /^\/posts\/[a-zA-Z0-9-_]+$/.test(req.url)) { // ^시작부분 \ 특수문자위한 이스케이프 $끝나는부분 +여러개 .test()존재하는지 검사
+  } else if (postIdRegexResult) { // ^시작부분 \ 특수문자위한 이스케이프 $끝나는부분 +여러개 .test()존재하는지 검사
+    const postId = postIdRegexResult[1]
+    console.log(postId)
     res.statusCode == 200
     res.end('Some content of the posts')
   } else if (req.url === '/posts/' && req.method === 'POSTS') {
@@ -38,7 +43,7 @@ const server = http.createServer((req, res) => {
   // npm i --save-dev nodemon
   // package.json scripts 에 scripts 'server' : 'nodemon src/main.js 추가후
   // npm run server 실행 -> 자도 서버 업데이트
-  console.log('Request accepted')
+  // console.log('Request accepted')
 
   // res.statusCode = 200
   // res.end('Hello')
