@@ -11,6 +11,38 @@
 const http = require('http')
 const {ifError} = require("assert");
 
+// JSDOC
+/**
+ * @typedef Post
+ * @property {String} id
+ * @property {String} title
+ * @property {String} content
+ */
+
+/**
+ * @type {Post}
+ */
+const examplePost = {
+  id: 'abc',
+  title: 'abc',
+  content: 'abc'
+}
+/**
+ * @type {Post[]}
+ */
+const posts = [
+  {
+    id: 'my_first_post',
+    title: 'My First Post',
+    content: 'Hello'
+  },
+  {
+    id: 'my_second_post',
+    title: 'My Second Post',
+    content: 'Second Post'
+  },
+]
+
 /**
  * Post ( 블로그 글 )
  *
