@@ -38,7 +38,7 @@ const posts = [
   },
   {
     id: 'my_second_post',
-    title: 'My Second Post',
+    title: '나의 두번째 포스트',
     content: 'Second Post'
   },
 ]
@@ -54,15 +54,53 @@ const server = http.createServer((req, res) => {
   const POST_ID_REGEX = /^\/posts\/([a-zA-Z0-9-_]+)$/ //캡처그룹을 활용해 뽑아내기 () 활용 -> .exec 의 1번인덱스배열로 값이나온다.
   const postIdRegexResult = req.url && POST_ID_REGEX.exec(req.url) || undefined // .exec() 정보를 돌려줌
   if (req.url === '/posts' && req.method === 'GET') {
+
+    const result = {
+      posts: posts.map(post => ({
+        id: post.id,
+        title: post.title
+      })),
+      totalCount: posts.length
+    }
+
     res.statusCode == 200
-    res.end('List of Posts')
+    res.setHeader('Content-Type', 'application/json; encoding=utf-8')
+    res.end(JSON.stringify(result))
+
   // } else if (req.url === '/posts/:id') {
-  } else if (postIdRegexResult) { // ^시작부분 \ 특수문자위한 이스케이프 $끝나는부분 +여러개 .test()존재하는지 검사
+  } else if (postIdRegexResult && req.method === 'GET') { // ^시작부분 \ 특수문자위한 이스케이프 $끝나는부분 +여러개 .test()존재하는지 검사
     const postId = postIdRegexResult[1]
     console.log(postId)
-    res.statusCode == 200
-    res.end('Some content of the posts')
-  } else if (req.url === '/posts/' && req.method === 'POSTS') {
+
+    const post = posts.find(_post => _post.id === postId) // 변수이름이 동일할경우 _줘서 쉐도잉
+    if (post) {
+      res.statusCode == 200;
+      res.setHeader('Content-Type', 'application/json; encoding=utf-8')
+      res.end(JSON.stringify(post));
+    } else {
+      res.statusCode == 404;
+      res.end('Post Not Found')
+    }
+
+  } else if (req.url === '/posts' && req.method === 'POST') {
+
+    req.setEncoding('utf-8')
+    req.on('data', data => {
+      console.log(data)
+      /**
+       * @typedef CreatePostBody
+       * @property {String} title
+       * @property {String} content
+       * */
+      /** @type {CreatePostBody} */
+      const body = JSON.parse(data)
+      console.log(body)
+      posts.push({
+        // id: body.title.toLocaleLowerCase().replaceAll(' ', '_'),
+        id: body.title.toLocaleLowerCase().replace(/\s/g, '_'), // s공백을 전부g
+        ...body
+      })
+    })
     res.statusCode == 200
     res.end('Creating posts')
   } else {
