@@ -9,114 +9,58 @@
  */
 
 const http = require('http')
-const {ifError} = require("assert");
-
-// JSDOC
-/**
- * @typedef Post
- * @property {String} id
- * @property {String} title
- * @property {String} content
- */
-
-/**
- * @type {Post}
- */
-const examplePost = {
-  id: 'abc',
-  title: 'abc',
-  content: 'abc'
-}
-/**
- * @type {Post[]}
- */
-const posts = [
-  {
-    id: 'my_first_post',
-    title: 'My First Post',
-    content: 'Hello'
-  },
-  {
-    id: 'my_second_post',
-    title: '나의 두번째 포스트',
-    content: 'Second Post'
-  },
-]
-
-/**
- * Post ( 블로그 글 )
- *
- * GET /posts
- * GET /posts/:id
- * POST /posts
- */
+const { routes } = require('./api')
 const server = http.createServer((req, res) => {
-  const POST_ID_REGEX = /^\/posts\/([a-zA-Z0-9-_]+)$/ //캡처그룹을 활용해 뽑아내기 () 활용 -> .exec 의 1번인덱스배열로 값이나온다.
-  const postIdRegexResult = req.url && POST_ID_REGEX.exec(req.url) || undefined // .exec() 정보를 돌려줌
-  if (req.url === '/posts' && req.method === 'GET') {
+  async function main() {
+    const route = routes.find(
+        (_route) =>
+            req.url &&
+            req.method &&
+            _route.url.test(req.url) &&
+            _route.method === req.method
+    )
 
-    const result = {
-      posts: posts.map(post => ({
-        id: post.id,
-        title: post.title
-      })),
-      totalCount: posts.length
+    if (!req.url || !route) {
+      res.statusCode === 404
+      res.end('Not Found')
+      return
     }
 
-    res.statusCode == 200
-    res.setHeader('Content-Type', 'application/json; encoding=utf-8')
-    res.end(JSON.stringify(result))
-
-  // } else if (req.url === '/posts/:id') {
-  } else if (postIdRegexResult && req.method === 'GET') { // ^시작부분 \ 특수문자위한 이스케이프 $끝나는부분 +여러개 .test()존재하는지 검사
-    const postId = postIdRegexResult[1]
-    console.log(postId)
-
-    const post = posts.find(_post => _post.id === postId) // 변수이름이 동일할경우 _줘서 쉐도잉
-    if (post) {
-      res.statusCode == 200;
-      res.setHeader('Content-Type', 'application/json; encoding=utf-8')
-      res.end(JSON.stringify(post));
-    } else {
-      res.statusCode == 404;
-      res.end('Post Not Found')
+    const regexResult = route.url.exec(req.url)
+    if (!regexResult) {
+      res.statusCode === 404
+      res.end('Not Found')
+      return
     }
 
-  } else if (req.url === '/posts' && req.method === 'POST') {
-
-    req.setEncoding('utf-8')
-    req.on('data', data => {
-      console.log(data)
-      /**
-       * @typedef CreatePostBody
-       * @property {String} title
-       * @property {String} content
-       * */
-      /** @type {CreatePostBody} */
-      const body = JSON.parse(data)
-      console.log(body)
-      posts.push({
-        // id: body.title.toLocaleLowerCase().replaceAll(' ', '_'),
-        id: body.title.toLocaleLowerCase().replace(/\s/g, '_'), // s공백을 전부g
-        ...body
+    /**
+     * @type {Object.<string, *>> | undefined}
+     */
+    const requestBody =
+        req.headers['content-type'] === 'application/json' &&
+        (await new Promise((resolve, reject) => {
+      req.setEncoding('utf-8')
+      req.on('data', data => {
+        try {
+          resolve(JSON.parse(data))
+        }catch {
+          reject(new Error('Ill-formed json'))
+        }
       })
-    })
-    res.statusCode == 200
-    res.end('Creating posts')
-  } else {
-    res.statusCode === 400
-    res.end('NOT FOUND')
+    })) || undefined
+    console.log('body is : ',requestBody)
+
+    const result = await route.callback(regexResult, requestBody);
+    res.statusCode = result.statusCode
+
+    if (typeof result.body === 'string') {
+      res.end(result.body);
+    } else {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8')
+      res.end(JSON.stringify(result.body))
+    }
   }
-
-  // 어떤 url(타겟) 로 요청이 왔는지
-  console.log(req.url)
-  // npm i --save-dev nodemon
-  // package.json scripts 에 scripts 'server' : 'nodemon src/main.js 추가후
-  // npm run server 실행 -> 자도 서버 업데이트
-  // console.log('Request accepted')
-
-  // res.statusCode = 200
-  // res.end('Hello')
+  main()
 })
 
 const PORT = 4000
